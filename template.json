@@ -1,0 +1,18 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "title": "title",
+  "description": "description",
+  "fullDescription": "fullDescription",
+  "version": "1.0",
+  "defaultGameState": {
+    "userLook": {},
+    "acquaintance": {},
+    "mainCharName": "Сара"
+  },
+  "script": {
+    "scenario" : [],
+    "characters": {},
+    "wardrobe": [],
+    "checkpoints" : []
+  }
+}
