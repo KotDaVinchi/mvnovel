@@ -154,12 +154,14 @@ const char = ({state, storyObject, operands}) => {
     const isAcqu = /(^| )default($| )/m.test(operands);
     operands = operands.split(/(?:^| )default(?:$| )/).join("");
 
-    const [charId, name, spriteDir] = operands.split(" ");
+    const [charId, ...name] = operands.split(" ");
 
     storyObject.script.characters[charId] = {name}
-    if (spriteDir) {
-        storyObject.script.characters[charId].spriteDir = spriteDir;
-    }
+
+
+    storyObject.assets = storyObject.assets || {};
+    storyObject.assets.characters = storyObject.assets.characters || {}
+    storyObject.assets.characters[charId] = storyObject.assets.characters[charId] || ["index.png"];
 
     if (isAcqu)
         storyObject.defaultGameState.acquaintance[charId] = isAcqu;

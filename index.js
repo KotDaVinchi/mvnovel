@@ -6,10 +6,11 @@
     const config = require("./package.json");
     let storyObject = require("./template.json");
     const operators = require("./operators");
-
-    const mkdirp = (path) => fs.mkdir(path, {recursive: true}).catch(e => {
+    const supEexist = e => {
         if (e && e.code !== 'EEXIST') throw e;
-    })
+    }
+
+    const mkdirp = (path) => fs.mkdir(path, {recursive: true}).catch(supEexist)
 
     let documentPath = "./document.txt"//todo load from command string or drag'n'drop dunno
 
@@ -81,12 +82,14 @@
     //char
     await mkdirp(path.join(startPath, 'assets', "char"))
     for (let char in storyObject.assets.characters) {
-        const charPath = path.join(startPath, 'assets', "char", char)
-        promiseArr.push(
-            mkdirp(charPath).then(() => {
-                fs.writeFile(path.join(charPath, "index.png"), "")
-            })
-        )
+        for (let charSprite of storyObject.assets.characters[char]){
+            const charPath = path.join(startPath, 'assets', "char", char)
+            promiseArr.push(
+                mkdirp(charPath).then(() => {
+                    return fs.writeFile(path.join(charPath, charSprite), "", {flag:"wx"}).catch(supEexist)
+                })
+            )
+        }
     }
     await Promise.all(promiseArr);
     promiseArr = [];
@@ -99,8 +102,9 @@
 
             await Promise.all(wardrobeSet.set.map(wardrobeItem => fs.writeFile(
                 path.join(wardrobePath, wardrobeSet.name, wardrobeItem.name),
-                ""
-            )));
+                "",
+                {flag:"wx"})
+                    .catch(supEexist)));
         })())
     }
     await Promise.all(promiseArr);
