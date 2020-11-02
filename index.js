@@ -28,24 +28,30 @@
         .replace(/^ +$/g, "")
         .split(/\n{2,}/)
 
+    let hasError = false;
     for (let stateString of vnScript) {
         let state = {};
         const splitterState = stateString.split("\n");
         for (let string of splitterState) {
             if (string.startsWith("%")) {
-                const result = /^%([\wа-яА-ЯйЙёЁ]+) ?(.*)/m.exec(string);
-                if (operators[result[1]]) {
-                    let opResult = operators[result[1]]({
-                        state,
-                        storyObject,
-                        operands: result[2]
-                    })
-                    if (!Array.isArray(opResult)) {
-                        opResult = [opResult, storyObject]
+                try {
+                    const result = /^%([\wа-яА-ЯйЙёЁ]+) ?(.*)/m.exec(string);
+                    if (operators[result[1]]) {
+                        let opResult = operators[result[1]]({
+                            state,
+                            storyObject,
+                            operands: result[2]
+                        })
+                        if (!Array.isArray(opResult)) {
+                            opResult = [opResult, storyObject]
+                        }
+                        [state, storyObject] = opResult;
+                    } else {
+                        throw new Error(`Unknown operator ${result[1]}`);
                     }
-                    [state, storyObject] = opResult;
-                } else {
-                    throw new Error(`Unknown operator ${result[1]}`);
+                } catch (e){
+                    console.error(e);
+                    hasError = true;
                 }
             }
         }
@@ -58,7 +64,10 @@
 
     storyObject.version = config.version
 
-    console.log(storyObject);
+    if(hasError){
+        console.log('Cant create story due errors!');
+        return;
+    }
     let startPath = "story"
     await mkdirp(path.join(startPath, "assets"));
     let promiseArr = [];

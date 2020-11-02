@@ -81,7 +81,7 @@ const checkpoint = ({state, storyObject, operands}) => {
 
     state.checkpoint = checkpoint;
 
-    if (!storyObject.script.checkpoints.some((value) => value === checkpoint)) {
+    if (!storyObject.script.checkpoints.some((value) => value.id === checkpoint)) {
         throw new Error(`Unknown checkpoint ${checkpoint}`);
     }
 
@@ -274,6 +274,7 @@ module.exports = {
     "ид": id,
     option,
     "вариант": option,
+    "выбор": option,
     next,
     "дальше": next,
     scene,
