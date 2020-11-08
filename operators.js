@@ -13,7 +13,7 @@ const name = ({state, storyObject, operands}) => {
     }
 
     if (!storyObject.script.characters[charId] && (charId !== "me")) {
-        throw new Error(`Unknown character ${charId}`);
+        throw new Error(`Unknown character "${charId}"`);
     }
 
     state.scene = state.scene || {};
@@ -82,7 +82,7 @@ const checkpoint = ({state, storyObject, operands}) => {
     state.checkpoint = checkpoint;
 
     if (!storyObject.script.checkpoints.some((value) => value.id === checkpoint)) {
-        throw new Error(`Unknown checkpoint ${checkpoint}`);
+        throw new Error(`Unknown checkpoint "${checkpoint}"`);
     }
 
     return [state, storyObject]
@@ -93,37 +93,36 @@ const id = ({state, storyObject, operands}) => {
 
     state.id = id;
 
-    storyObject._ids = storyObject._ids || {state: [], operators: []}
-    storyObject._ids.state.push(id);
-    //todo: need check ids after end
+    storyObject._ids = storyObject._ids || {to: [], from: []}
+    if (storyObject._ids.to.indexOf(id)+1) throw new Error(`Dublicate id "${id}"!`)
+    storyObject._ids.to.push(id);
 
     return [state, storyObject]
 };
 
 const option = ({state, storyObject, operands}) => {
-    let cost;
+    let additional;
     if (operands.indexOf("{") + 1) {
-        console.log(operands)
-        const reResult = /\{[^\}]+\}/.exec(operands);
-        console.log(reResult[0]);
-        cost = JSON.parse(reResult[0]);
-        operands = operands.split(/\{[^\}]+\}/).join("");
+        const reResult = /\{(\{.+\})\}/.exec(operands);
+        additional = JSON.parse(reResult[1]);
+        operands = operands.split(/\{(\{.+\})\}/).join("");
     }
 
-    let [next, ...title] = operands.split(" ").filter(_ => !!_);
+    let [next,  ...title] = operands.split(" ").filter(_ => !!_);
     title = title.join(" ")
 
     state.scene = state.scene || {};
     state.scene.options = state.scene.options || [];
-    if (cost) {
-        state.scene.options.push({title, next, cost: [cost]})
-    } else {
-        state.scene.options.push({title, next})
+    const obj = {title, next}
+
+    if(additional){
+        Object.assign(obj, additional)
     }
 
-    storyObject._ids = storyObject._ids || {state: [], operators: []}
-    storyObject._ids.operators.push(next);
-    //todo: need check ids after end
+    state.scene.options.push(obj);
+
+    storyObject._ids = storyObject._ids || {to: [], from: []}
+    storyObject._ids.from.push(next);
 
     return [state, storyObject]
 };
@@ -135,9 +134,8 @@ const next = ({state, storyObject, operands}) => {
     state.scene = state.scene || {};
     state.scene.next = next;
 
-    storyObject._ids = storyObject._ids || {state: [], operators: []}
-    storyObject._ids.operators.push(next);
-    //todo: need check ids after end
+    storyObject._ids = storyObject._ids || {to: [], from: []}
+    storyObject._ids.from.push(next);
 
     return [state, storyObject]
 };
@@ -152,11 +150,11 @@ const scene = ({state, storyObject, operands}) => {
 
 const char = ({state, storyObject, operands}) => {
     const isAcqu = /(^| )default($| )/m.test(operands);
-    operands = operands.split(/(?:^| )default(?:$| )/).join("");
+    operands = operands.split(/(?:^| )default(?:$| )/).join(" ");
 
     const [charId, ...name] = operands.split(" ");
 
-    storyObject.script.characters[charId] = {name}
+    storyObject.script.characters[charId] = {name: name.join(' ')}
 
 
     storyObject.assets = storyObject.assets || {};
@@ -194,18 +192,22 @@ const description = makeSimpleFields("fullDescription");
 const makeWardrobeFields = (wardrobeSet) => {
     return ({state, storyObject, operands}) => {
         const reResult = /\[([^\]]+)\]/.exec(operands);
-        const tags = reResult[1].split(" ").filter(_ => !!_);
-        operands = operands.split(/\[(?:[^\]]+)\]/).join("");
 
-        let cost;
+        let additional;
         if (operands.indexOf("{") + 1){
-            const jsonReResult = /\{[^\}]+\}/.exec(operands);
-            cost = JSON.parse(jsonReResult[0]);
-            operands = operands.split(/\{[^\}]+\}/).join("");
+            const jsonReResult = /\{(\{.+\})\}/.exec(operands);
+            additional = JSON.parse(jsonReResult[1]);
+            operands = operands.split(/\{(\{.+\})\}/).join("");
+        }
+
+        let tags = undefined;
+        if(reResult){
+            tags = reResult[1].split(" ").filter(_ => !!_);
+            operands = operands.split(/\[(?:[^\]]+)\]/).join("");
         }
 
         const isDefault = /(^| )default($| )/m.test(operands);
-        operands = operands.split(/(?:^| )default(?:$| )/).join("");
+        operands = operands.split(/(?:^| )default(?:$| )/).join(" ");
         let [name, ...title] = operands.split(" ").filter(_ => !!_);
 
         let index = storyObject.script.wardrobe.findIndex((value) => value.name === wardrobeSet);
@@ -213,20 +215,18 @@ const makeWardrobeFields = (wardrobeSet) => {
             index = storyObject.script.wardrobe.push({name: wardrobeSet, set: []}) - 1;
         }
         title = title.filter(_ => !!_).join(" ");
-        if(cost) {
-            storyObject.script.wardrobe[index].set.push({
-                name,
-                tags,
-                title: title,
-                cost: [cost]
-            });
-        } else {
-            storyObject.script.wardrobe[index].set.push({
-                name,
-                tags,
-                title: title
-            });
+
+        const obj = {
+            name,
+            tags,
+            title: title
         }
+
+        if(additional){
+            Object.assign(obj, additional)
+        }
+
+        storyObject.script.wardrobe[index].set.push(obj);
 
         if (isDefault) {
             storyObject.defaultGameState.userLook[wardrobeSet] = name;
@@ -239,8 +239,25 @@ const makeWardrobeFields = (wardrobeSet) => {
 const nation = makeWardrobeFields("nation")
 const hair = makeWardrobeFields("hair")
 const clothes = makeWardrobeFields("clothes")
+const item = makeWardrobeFields("item")
+
+const end = ({state, storyObject, operands}) => {
+    state.scene = Object.assign({}, state.scene, {next: null})
+
+    return [state, storyObject]
+};
+
+
+const addition = ({state, storyObject, operands}) => {
+    storyObject = Object.assign({}, storyObject, JSON.parse(operands));
+
+    return [state, storyObject]
+};
 
 const defReplica = (state, replica) => {
+    if(Object.keys(state).length === 0){
+        return null;
+    }
     state.scene = state.scene || {};
     state.scene.replica = replica;
     return state
@@ -258,6 +275,8 @@ module.exports = {
     "причёска": hair,
     clothes,
     "наряд": clothes,
+    item,
+    "вещь": item,
     name,
     "имя": name,
     bcg,
@@ -285,5 +304,10 @@ module.exports = {
     "перс": char,
     checkpointName,
     "чекпоинтИмя": checkpointName,
-    defReplica
+    end,
+    "конец": end,
+    addition,
+    "допдата": addition,
+    defReplica,
+
 }

@@ -6,11 +6,11 @@
     const config = require("./package.json");
     let storyObject = require("./template.json");
     const operators = require("./operators");
-    const supEexist = e => {
+    const supressEexist = e => {
         if (e && e.code !== 'EEXIST') throw e;
     }
 
-    const mkdirp = (path) => fs.mkdir(path, {recursive: true}).catch(supEexist)
+    const mkdirp = (path) => fs.mkdir(path, {recursive: true}).catch(supressEexist)
 
     let documentPath = "./document.txt"//todo load from command string or drag'n'drop dunno
 
@@ -48,10 +48,12 @@
                         }
                         [state, storyObject] = opResult;
                     } else {
-                        throw new Error(`Unknown operator ${result[1]}`);
+                        throw new Error(`Unknown operator "${result[1]}"`);
                     }
                 } catch (e){
+                    console.error(`In string "${string}":`);
                     console.error(e);
+                    console.error(``);
                     hasError = true;
                 }
             }
@@ -59,23 +61,34 @@
         state = operators.defReplica(state, splitterState.filter(s => s.length && !s.startsWith("%")).join("\n"))
 
         //place for attempt make short version
-
-        storyObject.script.scenario.push(state);
+        if(state) storyObject.script.scenario.push(state);
     }
 
     storyObject.version = config.version
+
+
+    storyObject._ids.to = storyObject._ids.to.filter((v,i,arr)=>arr.indexOf(v)===i);
+    storyObject._ids.from = storyObject._ids.from.filter((v,i,arr)=>arr.indexOf(v)===i);
+    storyObject._ids.from.forEach(idFrom => {
+        if(storyObject._ids.to.indexOf(idFrom) === -1){
+            console.error(`Can't find "${idFrom}" id!`);
+            hasError = true;
+        }
+    })
 
     if(hasError){
         console.log('Cant create story due errors!');
         return;
     }
+
+
     let startPath = "story"
     await mkdirp(path.join(startPath, "assets"));
     let promiseArr = [];
     //backgrounds
     await mkdirp(path.join(startPath, 'assets', "locations"))
     for (let location of storyObject.assets.backgrounds) {
-        promiseArr.push(fs.writeFile(path.join(startPath, 'assets', "locations", location), ""))
+        promiseArr.push(fs.writeFile(path.join(startPath, 'assets', "locations", location), "", {flag:"wx"}).catch(supressEexist))
     }
     await Promise.all(promiseArr);
     promiseArr = [];
@@ -86,7 +99,7 @@
             const charPath = path.join(startPath, 'assets', "char", char)
             promiseArr.push(
                 mkdirp(charPath).then(() => {
-                    return fs.writeFile(path.join(charPath, charSprite), "", {flag:"wx"}).catch(supEexist)
+                    return fs.writeFile(path.join(charPath, charSprite), "", {flag:"wx"}).catch(supressEexist)
                 })
             )
         }
@@ -104,7 +117,7 @@
                 path.join(wardrobePath, wardrobeSet.name, wardrobeItem.name),
                 "",
                 {flag:"wx"})
-                    .catch(supEexist)));
+                    .catch(supressEexist)));
         })())
     }
     await Promise.all(promiseArr);
