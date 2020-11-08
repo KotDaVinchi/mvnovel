@@ -105,7 +105,7 @@ const option = ({state, storyObject, operands}) => {
     if (operands.indexOf("{") + 1) {
         const reResult = /\{(\{.+\})\}/.exec(operands);
         additional = JSON.parse(reResult[1]);
-        operands = operands.split(/\{(\{.+\})\}/).join("");
+        operands = operands.split(/\{\{.+\}\}/).join("");
     }
 
     let [next,  ...title] = operands.split(" ").filter(_ => !!_);
@@ -197,7 +197,7 @@ const makeWardrobeFields = (wardrobeSet) => {
         if (operands.indexOf("{") + 1){
             const jsonReResult = /\{(\{.+\})\}/.exec(operands);
             additional = JSON.parse(jsonReResult[1]);
-            operands = operands.split(/\{(\{.+\})\}/).join("");
+            operands = operands.split(/\{\{.+\}\}/).join("");
         }
 
         let tags = undefined;
