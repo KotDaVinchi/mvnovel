@@ -191,7 +191,6 @@ const description = makeSimpleFields("fullDescription");
 //%раса simple [casual] простой наряд
 const makeWardrobeFields = (wardrobeSet) => {
     return ({state, storyObject, operands}) => {
-        const reResult = /\[([^\]]+)\]/.exec(operands);
 
         let additional;
         if (operands.indexOf("{") + 1){
@@ -200,6 +199,7 @@ const makeWardrobeFields = (wardrobeSet) => {
             operands = operands.split(/\{\{.+\}\}/).join("");
         }
 
+        const reResult = /\[([^\]]+)\]/.exec(operands);
         let tags = undefined;
         if(reResult){
             tags = reResult[1].split(" ").filter(_ => !!_);
