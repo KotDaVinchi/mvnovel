@@ -116,6 +116,7 @@ const id = ({state, storyObject, operands}) => {
 
     storyObject._ids = storyObject._ids || {to: [], from: []}
     if (storyObject._ids.to.indexOf(id)+1) throw new Error(`Dublicate id "${id}"!`)
+    if (state.id && state.id!==id) throw new Error(`Cant add id "${id}", state already have id.`)
     id = trnslt(id);
 
     storyObject._ids.to.push(id);
@@ -194,7 +195,7 @@ const char = ({state, storyObject, operands}) => {
 };
 
 const checkpointName = ({state, storyObject, operands}) => {
-    let [id, title] = operands.split(" ");
+    let [id, ...title] = operands.split(" ");
     id = trnslt(id);
 
     storyObject.script.checkpoints.push({id, title});
