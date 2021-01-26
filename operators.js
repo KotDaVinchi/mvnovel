@@ -42,7 +42,7 @@ const name = ({state, storyObject, operands}) => {
     state.scene = state.scene || {};
     state.scene.charId = charId;
 
-    return state
+    return [state, storyObject]
 };
 
 const bcg = ({state, storyObject, operands}) => {
@@ -75,9 +75,8 @@ const sprite = ({state, storyObject, operands}) => {
 const action = ({state, storyObject, operands}) => {
     const action = operands.split(" ");
 
-    state.scene = state.scene || {};
-    state.scene.action = state.scene.action || [];
-    state.scene.action.push([action])
+    state.actions = state.actions || [];
+    state.actions.push(action);
 
     return [state, storyObject]
 };
@@ -114,8 +113,7 @@ const checkpoint = ({state, storyObject, operands}) => {
 const id = ({state, storyObject, operands}) => {
     let id = operands.split(" ")[0];
 
-    storyObject._ids = storyObject._ids || {to: [], from: []}
-    if (storyObject._ids.to.indexOf(id)+1) throw new Error(`Dublicate id "${id}"!`)
+    if (storyObject._ids.to.indexOf(trnslt(id))+1) throw new Error(`Dublicate id "${id}"!`)
     if (state.id && state.id!==id) throw new Error(`Cant add id "${id}", state already have id.`)
     id = trnslt(id);
 
@@ -127,10 +125,15 @@ const id = ({state, storyObject, operands}) => {
 
 const option = ({state, storyObject, operands}) => {
     let additional;
-    if (operands.indexOf("{") + 1) {
-        const reResult = /\{(\{.+\})\}/.exec(operands);
-        additional = JSON.parse(reResult[1]);
-        operands = operands.split(/\{\{.+\}\}/).join("");
+    try {
+        if (operands.indexOf("{") + 1) {
+            const reResult = /\{(\{.+\})\}/.exec(operands);
+            additional = JSON.parse(reResult[1]);
+            operands = operands.split(/\{\{.+\}\}/).join("");
+        }
+    } catch (e) {
+        e.message = 'In additional data: ' + e.name
+        throw e
     }
 
     let [next,  ...title] = operands.split(" ").filter(_ => !!_);
@@ -147,7 +150,9 @@ const option = ({state, storyObject, operands}) => {
 
     state.scene.options.push(obj);
 
-    storyObject._ids = storyObject._ids || {to: [], from: []}
+
+    if(next.length < 3) throw new Error("Too short id");
+
     storyObject._ids.from.push(next);
 
     return [state, storyObject]
@@ -155,13 +160,21 @@ const option = ({state, storyObject, operands}) => {
 
 const next = ({state, storyObject, operands}) => {
     let next = operands.split(" ");//todo: условные переходы
-    if(next.length === 1) next = trnslt(next[0])
+    const id = trnslt(next.pop());
+    next.push(id);
 
-    state.scene = state.scene || {};
-    state.scene.next = next;
+    if(next.length === 1) next = next[0];
 
-    storyObject._ids = storyObject._ids || {to: [], from: []}
-    storyObject._ids.from.push(next);
+    if(state.scene && state.scene.next){
+        state.scene.next.push(next)
+    }else{
+        state.scene = state.scene || {};
+        state.scene.next = [next];
+    }
+
+    if(id.length < 3) throw new Error("Too short id");
+
+    storyObject._ids.from.push(id);
 
     return [state, storyObject]
 };
@@ -175,6 +188,18 @@ const scene = ({state, storyObject, operands}) => {
 };
 
 const char = ({state, storyObject, operands}) => {
+    let additional={};
+    try {
+        if (operands.indexOf("{") + 1) {
+            const reResult = /\{(\{.+\})\}/.exec(operands);
+            additional = JSON.parse(reResult[1]);
+            operands = operands.split(/\{\{.+\}\}/).join("");
+        }
+    } catch (e) {
+        e.message = 'In additional data: ' + e.name
+        throw e
+    }
+
     const isAcqu = /(^| )default($| )/m.test(operands);
     operands = operands.split(/(?:^| )default(?:$| )/).join(" ");
 
@@ -183,10 +208,13 @@ const char = ({state, storyObject, operands}) => {
 
     storyObject.script.characters[charId] = {name: name.join(' ')}
 
+    const defaultExt = additional.defaultExt || 'png';
+    const defaultSprite = additional.defaultSprite || 'index'
+    const defaultSpriteFile = [defaultSprite, defaultExt].join('.')
 
     storyObject.assets = storyObject.assets || {};
     storyObject.assets.characters = storyObject.assets.characters || {}
-    storyObject.assets.characters[charId] = storyObject.assets.characters[charId] || ["index.png"];
+    storyObject.assets.characters[charId] = storyObject.assets.characters[charId] || [defaultSpriteFile];
 
     if (isAcqu || storyObject.knownCharsByDefault)
         storyObject.defaultGameState.acquaintance[charId] = true;
@@ -221,10 +249,15 @@ const makeWardrobeFields = (wardrobeSet) => {
     return ({state, storyObject, operands}) => {
 
         let additional;
-        if (operands.indexOf("{") + 1){
-            const jsonReResult = /\{(\{.+\})\}/.exec(operands);
-            additional = JSON.parse(jsonReResult[1]);
-            operands = operands.split(/\{\{.+\}\}/).join("");
+        try {
+            if (operands.indexOf("{") + 1) {
+                const jsonReResult = /\{(\{.+\})\}/.exec(operands);
+                additional = JSON.parse(jsonReResult[1]);
+                operands = operands.split(/\{\{.+\}\}/).join("");
+            }
+        } catch (e) {
+            e.message = 'In additional data: ' + e.name
+            throw e
         }
 
         const reResult = /\[([^\]]+)\]/.exec(operands);
@@ -284,7 +317,7 @@ const addition = ({state, storyObject, operands}) => {
 };
 
 const defReplica = (state, replica) => {
-    if(Object.keys(state).length === 0){
+    if(replica.length === 0){
         return null;
     }
     state.scene = state.scene || {};

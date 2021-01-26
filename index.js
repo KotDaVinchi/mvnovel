@@ -5,6 +5,10 @@
 
     const config = require("./package.json");
     let storyObject = require("./template.json");
+    storyObject._ids = {
+        to: [],
+        from: []
+    }
     const operators = require("./operators");
     const supressEexist = e => {
         if (e && e.code !== 'EEXIST') throw e;
@@ -27,14 +31,18 @@
         .replace(/(\r\n|\u2028)/g, "\n")
         .replace(/ {2,}/g, " ")
         .replace(/^ +$/g, "")
-        .split(/\n{2,}/)
+        .split(/(?:\n[\f\t\v\u00a0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000]?)+\n/)
 
     let hasError = false;
     for (let stateString of vnScript) {
         let state = {};
         const splitterState = stateString.split("\n");
+        const replica = [];
         for (let string of splitterState) {
-            if (string.startsWith("%")) {
+            string = string.split(/\/\//)[0];
+            if (string.length===0){
+                continue;//this is comment
+            }else if (string.startsWith("%")) {
                 try {
                     const result = /^%([\wа-яА-ЯйЙёЁ]+) ?(.*)/m.exec(string);
                     if (operators[result[1]]) {
@@ -52,13 +60,30 @@
                     }
                 } catch (e){
                     console.error(`In string "${string}":`);
+                    console.error(`In state:`);
+                    console.error("---state---");
+                    console.error(stateString);
+                    console.error("---state---");
                     console.error(e);
                     console.error(``);
                     hasError = true;
                 }
+            } else {
+                replica.push(string)
             }
         }
-        state = operators.defReplica(state, splitterState.filter(s => s.length && !s.startsWith("%")).join("\n"))
+        state = operators.defReplica(state, replica.join("\n"))
+
+        if(!state || state.scene.replica.replace(/\s/,'') === 0){
+            console.error(`In state:`);
+            console.error("---state---");
+            console.error(stateString);
+            console.error("---state---");
+            console.error("State without text");
+            console.error(``);
+
+            // hasError = true;
+        }
 
         //place for attempt make short version
         if(state) storyObject.script.scenario.push(state);
@@ -129,5 +154,6 @@
     delete storyObject._ids;
     await fs.writeFile(path.join(startPath,"index.json"), JSON.stringify(storyObject, null, "  "));
 
+    console.log("NOVEL SUCCESSFULLY INTERPRETED!");
 
 })();
