@@ -9,6 +9,10 @@
         to: [],
         from: []
     }
+    storyObject.assets = {
+        backgrounds: [],
+        characters: {}
+    }
     const operators = require("./operators");
     const supressEexist = e => {
         if (e && e.code !== 'EEXIST') throw e;
@@ -39,10 +43,17 @@
         const splitterState = stateString.split("\n");
         const replica = [];
         for (let string of splitterState) {
-            string = string.split(/\/\//)[0];
-            if (string.length===0){
+            let splittedString = string.split(/\/\//)
+            string = splittedString.shift();
+            if (string.length===0) {
                 continue;//this is comment
-            }else if (string.startsWith("%")) {
+            }
+            while (((string.split('"').length-1) % 2) !== 0){
+                console.log('while ', string);
+                string = string+'//'+splittedString.shift();
+            }
+
+            if (string.startsWith("%")) {
                 try {
                     const result = /^%([\wа-яА-ЯйЙёЁ]+) ?(.*)/m.exec(string);
                     if (operators[result[1]]) {

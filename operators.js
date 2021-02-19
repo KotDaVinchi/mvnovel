@@ -46,13 +46,16 @@ const name = ({state, storyObject, operands}) => {
 };
 
 const bcg = ({state, storyObject, operands}) => {
-    const background = operands.split(" ")[0];
+    let background = operands.split(/\s+/).map(v => trnslt(v));
+    background = background.filter(_=>!!_)
 
-    state.background = trnslt(background);
+    state.background = {
+        image: background.length === 1 ? background[0] : background
+    };
 
     storyObject.assets = storyObject.assets || {};
     storyObject.assets.backgrounds = storyObject.assets.backgrounds || []
-    storyObject.assets.backgrounds.push(background);
+    storyObject.assets.backgrounds = storyObject.assets.backgrounds.concat(background);
     return [state, storyObject]
 };
 
