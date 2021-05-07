@@ -67,10 +67,17 @@ const sprite = ({state, storyObject, operands}) => {
 
     if (state.scene.charId) {
         storyObject.assets = storyObject.assets || {};
-        storyObject.assets.characters = storyObject.assets.characters || {}
-        storyObject.assets.characters[state.scene.charId] = storyObject.assets.characters[state.scene.charId] || ["index.png"]
-        storyObject.assets.characters[state.scene.charId].push(emotion + ".png");
-        storyObject.assets.characters[state.scene.charId].filter((value, index, array) => array.indexOf(value) === index)//dedupe
+        if(state.scene.charId === 'me'){
+            storyObject.assets.mainChar = storyObject.assets.mainChar || [];
+
+            storyObject.assets.mainChar = [...storyObject.assets.mainChar, emotion];
+            storyObject.assets.mainChar = storyObject.assets.mainChar.filter((value, index, array) => array.indexOf(value) === index)//dedupe
+        } else {
+            storyObject.assets.characters = storyObject.assets.characters || {}
+            storyObject.assets.characters[state.scene.charId] = storyObject.assets.characters[state.scene.charId] || ["index.png"]
+            storyObject.assets.characters[state.scene.charId].push(emotion + ".png");
+            storyObject.assets.characters[state.scene.charId].filter((value, index, array) => array.indexOf(value) === index)//dedupe
+        }
     }
     return [state, storyObject]
 };

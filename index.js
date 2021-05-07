@@ -11,7 +11,8 @@
     }
     storyObject.assets = {
         backgrounds: [],
-        characters: {}
+        characters: {},
+        mainChar: [],
     }
     const operators = require("./operators");
     const supressEexist = e => {
@@ -43,14 +44,10 @@
         const splitterState = stateString.split("\n");
         const replica = [];
         for (let string of splitterState) {
-            let splittedString = string.split(/\/\//)
+            let splittedString = string.split(/(?<!https?:)\/\//)
             string = splittedString.shift();
             if (string.length===0) {
                 continue;//this is comment
-            }
-            while (((string.split('"').length-1) % 2) !== 0){
-                console.log('while ', string);
-                string = string+'//'+splittedString.shift();
             }
 
             if (string.startsWith("%")) {
@@ -154,6 +151,17 @@
                 "",
                 {flag:"wx"})
                     .catch(supressEexist)));
+        })())
+    }
+    for(let emotion of storyObject.assets.mainChar) {
+        promiseArr.push((async () => {
+            const emotionPath = path.join(wardrobePath, 'emotions', emotion);
+            await mkdirp(emotionPath);
+            await Promise.all(storyObject.script.wardrobe.find(el => el.name === 'nation').set.map(nation => fs.writeFile(
+                path.join(emotionPath, nation.name),
+                "",
+                {flag:"wx"})
+                .catch(supressEexist)))
         })())
     }
     await Promise.all(promiseArr);
