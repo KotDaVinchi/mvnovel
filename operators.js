@@ -82,8 +82,14 @@ const sprite = ({state, storyObject, operands}) => {
     return [state, storyObject]
 };
 
+const allowedActions = ['introduce', 'set', 'saveWardrobe', 'restoreWardrobe', 'add', 'sub', 'mul', 'div']
+
 const action = ({state, storyObject, operands}) => {
     const action = operands.split(" ");
+
+    if (!allowedActions.includes(action[0])) {
+        console.error(`Unknown action "${action[0]}"`);
+    }
 
     state.actions = state.actions || [];
     state.actions.push(action);
